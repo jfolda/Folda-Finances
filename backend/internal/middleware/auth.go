@@ -40,6 +40,8 @@ func (am *AuthMiddleware) Authenticate(next http.Handler) http.Handler {
 
 		userID, err := am.validateToken(tokenString)
 		if err != nil {
+			// Log the actual error for debugging
+			println("JWT validation error:", err.Error())
 			http.Error(w, `{"error":"invalid or expired token"}`, http.StatusUnauthorized)
 			return
 		}
