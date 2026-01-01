@@ -1,6 +1,6 @@
 // Authentication context using Supabase
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User as SupabaseUser, Session } from '@supabase/supabase-js';
+import { Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { apiClient } from '../lib/api';
 import type { User } from '../../../shared/types/api';

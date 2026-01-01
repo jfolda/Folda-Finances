@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../lib/api';
-import { formatCurrency, formatDate } from '../lib/utils';
+import { formatCurrency } from '../lib/utils';
 import { Link } from 'react-router-dom';
 import { PlusIcon, FunnelIcon } from '@heroicons/react/24/outline';
 import type { Transaction } from '../../../shared/types/api';
