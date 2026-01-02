@@ -2,6 +2,9 @@
 import type {
   User,
   UpdateUserSettingsRequest,
+  Account,
+  CreateAccountRequest,
+  UpdateAccountRequest,
   Transaction,
   CreateTransactionRequest,
   UpdateTransactionRequest,
@@ -127,6 +130,40 @@ class ApiClient {
 
   async deleteTransaction(id: string): Promise<ApiResponse<void>> {
     return this.request<ApiResponse<void>>(`/transactions/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Account endpoints
+  async getAccounts(): Promise<ApiResponse<Account[]>> {
+    return this.request<ApiResponse<Account[]>>('/accounts');
+  }
+
+  async createAccount(
+    data: CreateAccountRequest
+  ): Promise<ApiResponse<Account>> {
+    return this.request<ApiResponse<Account>>('/accounts', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getAccount(id: string): Promise<ApiResponse<Account>> {
+    return this.request<ApiResponse<Account>>(`/accounts/${id}`);
+  }
+
+  async updateAccount(
+    id: string,
+    data: UpdateAccountRequest
+  ): Promise<ApiResponse<Account>> {
+    return this.request<ApiResponse<Account>>(`/accounts/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteAccount(id: string): Promise<ApiResponse<void>> {
+    return this.request<ApiResponse<void>>(`/accounts/${id}`, {
       method: 'DELETE',
     });
   }

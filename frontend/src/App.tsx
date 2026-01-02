@@ -7,6 +7,7 @@ import { SignupPage } from './pages/auth/SignupPage';
 import { WhatCanISpendPage } from './pages/WhatCanISpendPage';
 import { TransactionsPage } from './pages/TransactionsPage';
 import { AddTransactionPage } from './pages/AddTransactionPage';
+import { AccountsPage } from './pages/AccountsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { BudgetsPage } from './pages/BudgetsPage';
 
@@ -69,6 +70,16 @@ function AppRoutes() {
         }
       />
 
+      <Route
+        path="/accounts"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <AccountsPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
       <Route
         path="/budgets"
         element={

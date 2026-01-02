@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import {
   HomeIcon,
   CreditCardIcon,
+  BuildingLibraryIcon,
   ChartBarIcon,
   CogIcon,
   ArrowRightOnRectangleIcon,
@@ -20,6 +21,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const navigation = [
     { name: 'What Can I Spend?', href: '/', icon: HomeIcon },
     { name: 'Transactions', href: '/transactions', icon: CreditCardIcon },
+    { name: 'Accounts', href: '/accounts', icon: BuildingLibraryIcon },
     { name: 'Budgets', href: '/budgets', icon: ChartBarIcon },
     { name: 'Settings', href: '/settings', icon: CogIcon },
   ];

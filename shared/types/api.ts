@@ -127,6 +127,42 @@ export interface UpdateCategoryBudgetRequest {
 }
 
 // ============================================================================
+// ACCOUNT TYPES
+// ============================================================================
+
+export type AccountType = 'checking' | 'savings' | 'credit_card' | 'cash' | 'investment' | 'other';
+
+export interface Account {
+  id: string;
+  budget_id: string;
+  name: string;
+  type: AccountType;
+  balance: number; // in cents
+  currency: string;
+  is_active: boolean;
+  notes: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateAccountRequest {
+  name: string;
+  type: AccountType;
+  balance?: number; // in cents, defaults to 0
+  currency?: string; // defaults to 'USD'
+  notes?: string;
+}
+
+export interface UpdateAccountRequest {
+  name?: string;
+  type?: AccountType;
+  balance?: number;
+  currency?: string;
+  is_active?: boolean;
+  notes?: string;
+}
+
+// ============================================================================
 // TRANSACTION TYPES
 // ============================================================================
 
@@ -134,6 +170,7 @@ export interface Transaction {
   id: string;
   user_id: string;
   budget_id: string;
+  account_id: string | null;
   amount: number;
   description: string;
   category_id: string;
@@ -149,6 +186,7 @@ export interface CreateTransactionRequest {
   description: string;
   category_id: string;
   date: string;
+  account_id?: string | null;
 }
 
 export interface UpdateTransactionRequest {
@@ -156,6 +194,7 @@ export interface UpdateTransactionRequest {
   description?: string;
   category_id?: string;
   date?: string;
+  account_id?: string | null;
 }
 
 // ============================================================================
