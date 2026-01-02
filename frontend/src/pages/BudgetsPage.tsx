@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { apiClient } from '../lib/api';
 import type { Category, CategoryBudget } from '../../../shared/types/api';
+import { PencilIcon, TrashIcon, PlusIcon } from '@heroicons/react/24/outline';
 
 export function BudgetsPage() {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -9,6 +10,8 @@ export function BudgetsPage() {
   const [error, setError] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editAmount, setEditAmount] = useState('');
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [selectedCategoryId, setSelectedCategoryId] = useState('');
 
   useEffect(() => {
     loadData();
@@ -69,11 +72,21 @@ export function BudgetsPage() {
     const budget = budgets.find((b) => b.category_id === categoryId);
     setEditingId(categoryId);
     setEditAmount(budget ? (budget.amount / 100).toFixed(2) : '');
+    setShowAddForm(false);
+  };
+
+  const startAdding = () => {
+    setShowAddForm(true);
+    setEditingId(null);
+    setSelectedCategoryId('');
+    setEditAmount('');
   };
 
   const cancelEditing = () => {
     setEditingId(null);
     setEditAmount('');
+    setShowAddForm(false);
+    setSelectedCategoryId('');
   };
 
   const saveEditing = (categoryId: string) => {
@@ -84,6 +97,30 @@ export function BudgetsPage() {
     }
     handleSetBudget(categoryId, amount);
   };
+
+  const saveNewBudget = () => {
+    if (!selectedCategoryId) {
+      alert('Please select a category');
+      return;
+    }
+    const amount = Math.round(parseFloat(editAmount) * 100);
+    if (isNaN(amount) || amount < 0) {
+      alert('Please enter a valid amount');
+      return;
+    }
+    handleSetBudget(selectedCategoryId, amount);
+    setShowAddForm(false);
+  };
+
+  // Get categories that already have budgets
+  const budgetedCategories = categories.filter((cat) =>
+    budgets.some((b) => b.category_id === cat.id)
+  );
+
+  // Get categories without budgets for the add form
+  const unbudgetedCategories = categories.filter((cat) =>
+    !budgets.some((b) => b.category_id === cat.id)
+  );
 
   if (loading) {
     return (
@@ -111,100 +148,188 @@ export function BudgetsPage() {
         </div>
       )}
 
+      {/* Budgeted Categories */}
       <div className="bg-white shadow rounded-lg overflow-hidden">
-        <div className="divide-y divide-gray-200">
-          {categories.map((category) => {
-            const budget = budgets.find((b) => b.category_id === category.id);
-            const isEditing = editingId === category.id;
+        {budgetedCategories.length === 0 && !showAddForm ? (
+          <div className="p-12 text-center">
+            <p className="text-gray-500 mb-4">No budgets set yet.</p>
+            <button
+              onClick={startAdding}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            >
+              <PlusIcon className="h-5 w-5" />
+              Add Your First Budget
+            </button>
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-200">
+            {budgetedCategories.map((category) => {
+              const budget = budgets.find((b) => b.category_id === category.id);
+              const isEditing = editingId === category.id;
 
-            return (
-              <div
-                key={category.id}
-                className="p-4 hover:bg-gray-50 transition-colors"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div
-                      className="w-10 h-10 rounded-full flex items-center justify-center text-xl"
-                      style={{ backgroundColor: category.color + '20' }}
-                    >
-                      {category.icon}
+              return (
+                <div
+                  key={category.id}
+                  className="p-4 hover:bg-gray-50 transition-colors"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div
+                        className="w-10 h-10 rounded-full flex items-center justify-center text-xl"
+                        style={{ backgroundColor: category.color + '20' }}
+                      >
+                        {category.icon}
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-medium text-gray-900">
+                          {category.name}
+                        </h3>
+                        {budget && !isEditing && (
+                          <p className="text-sm text-gray-500">
+                            ${(budget.amount / 100).toFixed(2)}/month
+                          </p>
+                        )}
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="text-sm font-medium text-gray-900">
-                        {category.name}
-                      </h3>
-                      {budget && !isEditing && (
-                        <p className="text-sm text-gray-500">
-                          ${(budget.amount / 100).toFixed(2)}/month
-                        </p>
-                      )}
-                      {!budget && !isEditing && (
-                        <p className="text-sm text-gray-400">No budget set</p>
+
+                    <div className="flex items-center space-x-2">
+                      {isEditing ? (
+                        <>
+                          <div className="flex items-center space-x-2">
+                            <span className="text-gray-500">$</span>
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={editAmount}
+                              onChange={(e) => setEditAmount(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  saveEditing(category.id);
+                                } else if (e.key === 'Escape') {
+                                  cancelEditing();
+                                }
+                              }}
+                              className="w-32 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 border"
+                              placeholder="0.00"
+                              autoFocus
+                            />
+                          </div>
+                          <button
+                            onClick={() => saveEditing(category.id)}
+                            className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={cancelEditing}
+                            className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                          >
+                            Cancel
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => startEditing(category.id)}
+                            className="p-2 text-gray-400 hover:text-blue-600"
+                            title="Edit budget"
+                          >
+                            <PencilIcon className="h-5 w-5" />
+                          </button>
+                          <button
+                            onClick={() => budget && handleDelete(budget.id)}
+                            className="p-2 text-gray-400 hover:text-red-600"
+                            title="Remove budget"
+                          >
+                            <TrashIcon className="h-5 w-5" />
+                          </button>
+                        </>
                       )}
                     </div>
                   </div>
+                </div>
+              );
+            })}
 
-                  <div className="flex items-center space-x-2">
-                    {isEditing ? (
-                      <>
-                        <div className="flex items-center space-x-2">
-                          <span className="text-gray-500">$</span>
-                          <input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            value={editAmount}
-                            onChange={(e) => setEditAmount(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                saveEditing(category.id);
-                              } else if (e.key === 'Escape') {
-                                cancelEditing();
-                              }
-                            }}
-                            className="w-32 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 border"
-                            placeholder="0.00"
-                            autoFocus
-                          />
-                        </div>
-                        <button
-                          onClick={() => saveEditing(category.id)}
-                          className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                        >
-                          Save
-                        </button>
-                        <button
-                          onClick={cancelEditing}
-                          className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                        >
-                          Cancel
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <button
-                          onClick={() => startEditing(category.id)}
-                          className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                        >
-                          {budget ? 'Edit' : 'Set Budget'}
-                        </button>
-                        {budget && (
-                          <button
-                            onClick={() => handleDelete(budget.id)}
-                            className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                          >
-                            Remove
-                          </button>
-                        )}
-                      </>
-                    )}
+            {/* Add New Budget Form */}
+            {showAddForm && unbudgetedCategories.length > 0 && (
+              <div className="p-4 bg-blue-50 border-t-2 border-blue-200">
+                <h3 className="text-sm font-medium text-gray-900 mb-3">
+                  Add New Budget
+                </h3>
+                <div className="flex items-end gap-3">
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Category
+                    </label>
+                    <select
+                      value={selectedCategoryId}
+                      onChange={(e) => setSelectedCategoryId(e.target.value)}
+                      className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 border"
+                    >
+                      <option value="">Select a category</option>
+                      {unbudgetedCategories.map((cat) => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.icon} {cat.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Monthly Budget
+                    </label>
+                    <div className="flex items-center">
+                      <span className="text-gray-500 mr-2">$</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={editAmount}
+                        onChange={(e) => setEditAmount(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            saveNewBudget();
+                          } else if (e.key === 'Escape') {
+                            cancelEditing();
+                          }
+                        }}
+                        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 border"
+                        placeholder="0.00"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={saveNewBudget}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
+                    >
+                      Add
+                    </button>
+                    <button
+                      onClick={cancelEditing}
+                      className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 text-sm font-medium"
+                    >
+                      Cancel
+                    </button>
                   </div>
                 </div>
               </div>
-            );
-          })}
-        </div>
+            )}
+
+            {/* Large Add Button */}
+            {!showAddForm && unbudgetedCategories.length > 0 && (
+              <button
+                onClick={startAdding}
+                className="w-full p-6 flex items-center justify-center gap-2 text-blue-600 hover:bg-blue-50 transition-colors border-t-2 border-dashed border-gray-200 hover:border-blue-300"
+              >
+                <PlusIcon className="h-6 w-6" />
+                <span className="font-medium">Add Budget</span>
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="mt-6 bg-blue-50 rounded-lg p-4">

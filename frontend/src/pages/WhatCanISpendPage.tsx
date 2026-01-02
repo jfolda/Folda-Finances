@@ -1,9 +1,10 @@
 // "What Can I Spend?" page - CORE FEATURE
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../lib/api';
-import { formatCurrency, getStatusColor, getStatusBgColor, calculateDaysRemaining } from '../lib/utils';
+import { formatCurrency, getStatusColor, calculateDaysRemaining } from '../lib/utils';
 import { Link } from 'react-router-dom';
-import { PlusIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline';
 
 export function WhatCanISpendPage() {
   const { data, isLoading, error, refetch } = useQuery({
@@ -174,78 +175,90 @@ export function WhatCanISpendPage() {
 }
 
 function CategoryCard({ category }: { category: any }) {
+  const [isExpanded, setIsExpanded] = useState(false);
   const percentageUsed = category.percentage_used;
   const statusColor = getStatusColor(percentageUsed);
-  const statusBgColor = getStatusBgColor(percentageUsed);
 
   return (
-    <div className={`${statusBgColor} rounded-lg p-6 border-2 ${
-      percentageUsed > 100 ? 'border-red-300' :
-      percentageUsed >= 75 ? 'border-yellow-300' :
-      'border-green-300'
-    }`}>
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <div className="flex items-center gap-3">
-            <div
-              className="w-10 h-10 rounded-full flex items-center justify-center text-xl"
-              style={{ backgroundColor: category.category_color + '20' }}
-            >
-              {category.category_icon}
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">
-                {category.category_name}
-              </h3>
-              {category.is_split && (
-                <p className="text-xs text-gray-500">Your share</p>
-              )}
-            </div>
+    <div className="bg-white rounded-lg border border-gray-200 hover:border-gray-300 transition-colors">
+      {/* Compact Header - Always Visible */}
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full px-4 py-3 flex items-center justify-between text-left"
+      >
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <div
+            className="w-8 h-8 rounded-full flex items-center justify-center text-base flex-shrink-0"
+            style={{ backgroundColor: category.category_color + '20' }}
+          >
+            {category.category_icon}
           </div>
-
-          {/* Available Amount - Large and Prominent */}
-          <div className="mt-4">
-            <p className="text-sm text-gray-600 mb-1">Available to spend</p>
-            <p className={`text-4xl font-bold ${statusColor}`}>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-sm font-medium text-gray-900 truncate">
+              {category.category_name}
+            </h3>
+            {category.is_split && (
+              <p className="text-xs text-gray-500">Your share</p>
+            )}
+          </div>
+          <div className="text-right flex-shrink-0">
+            <p className={`text-lg font-bold ${statusColor}`}>
               {category.available >= 0
                 ? formatCurrency(category.available)
                 : `−${formatCurrency(Math.abs(category.available))}`}
             </p>
           </div>
-
-          {/* Progress Bar */}
-          <div className="mt-4">
-            <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
-              <span>Spent: {formatCurrency(category.spent)}</span>
-              <span>Budget: {formatCurrency(category.budgeted)}</span>
-            </div>
-            <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
-              <div
-                className={`h-full transition-all duration-300 ${
-                  percentageUsed > 100
-                    ? 'bg-red-600'
-                    : percentageUsed >= 75
-                    ? 'bg-yellow-500'
-                    : 'bg-green-500'
-                }`}
-                style={{ width: `${Math.min(100, percentageUsed)}%` }}
-              />
-            </div>
-            <p className="text-xs text-gray-500 mt-1 text-right">
-              {percentageUsed.toFixed(0)}% used
-            </p>
+          <div className="flex-shrink-0 ml-2">
+            {isExpanded ? (
+              <ChevronUpIcon className="h-5 w-5 text-gray-400" />
+            ) : (
+              <ChevronDownIcon className="h-5 w-5 text-gray-400" />
+            )}
           </div>
         </div>
+      </button>
 
-        {/* Quick Transfer Button (Future Feature) */}
-        <button
-          className="ml-4 w-8 h-8 flex items-center justify-center border-2 border-gray-300 rounded text-gray-400 hover:border-blue-500 hover:text-blue-500 transition-colors"
-          title="Transfer funds (coming soon)"
-          disabled
-        >
-          <PlusIcon className="h-5 w-5" />
-        </button>
-      </div>
+      {/* Expanded Details */}
+      {isExpanded && (
+        <div className="px-4 pb-4 border-t border-gray-100">
+          <div className="pt-3 space-y-3">
+            {/* Budget Details */}
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <p className="text-gray-500">Budgeted</p>
+                <p className="font-semibold text-gray-900">
+                  {formatCurrency(category.budgeted)}
+                </p>
+              </div>
+              <div>
+                <p className="text-gray-500">Spent</p>
+                <p className="font-semibold text-gray-900">
+                  {formatCurrency(category.spent)}
+                </p>
+              </div>
+            </div>
+
+            {/* Progress Bar */}
+            <div>
+              <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div
+                  className={`h-full transition-all duration-300 ${
+                    percentageUsed > 100
+                      ? 'bg-red-600'
+                      : percentageUsed >= 75
+                      ? 'bg-yellow-500'
+                      : 'bg-green-500'
+                  }`}
+                  style={{ width: `${Math.min(100, percentageUsed)}%` }}
+                />
+              </div>
+              <p className="text-xs text-gray-500 mt-1 text-right">
+                {percentageUsed.toFixed(0)}% used
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
