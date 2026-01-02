@@ -135,12 +135,33 @@ CREATE INDEX idx_detected_patterns_merchant ON detected_patterns(merchant_name);
 CREATE INDEX idx_detected_patterns_action ON detected_patterns(user_action);
 
 -- ============================================================================
+-- TABLE: accounts (bank accounts, credit cards, cash, etc.)
+-- ============================================================================
+CREATE TABLE accounts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    budget_id UUID NOT NULL REFERENCES budgets(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    type VARCHAR(50) NOT NULL CHECK (type IN ('checking', 'savings', 'credit_card', 'cash', 'investment', 'other')),
+    balance INTEGER NOT NULL DEFAULT 0, -- Current balance in cents
+    currency VARCHAR(3) NOT NULL DEFAULT 'USD',
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX idx_accounts_budget ON accounts(budget_id);
+CREATE INDEX idx_accounts_type ON accounts(type);
+CREATE INDEX idx_accounts_active ON accounts(is_active);
+
+-- ============================================================================
 -- TABLE: transactions
 -- ============================================================================
 CREATE TABLE transactions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     budget_id UUID NOT NULL REFERENCES budgets(id) ON DELETE CASCADE,
+    account_id UUID NULL REFERENCES accounts(id) ON DELETE SET NULL,
     amount INTEGER NOT NULL,
     description TEXT,
     merchant_name VARCHAR(255),
@@ -154,6 +175,7 @@ CREATE TABLE transactions (
 CREATE INDEX idx_transactions_user_date ON transactions(user_id, date DESC);
 CREATE INDEX idx_transactions_budget_date ON transactions(budget_id, date DESC);
 CREATE INDEX idx_transactions_category ON transactions(category_id);
+CREATE INDEX idx_transactions_account ON transactions(account_id);
 CREATE INDEX idx_transactions_merchant ON transactions(merchant_name);
 CREATE INDEX idx_transactions_pattern ON transactions(detected_pattern_id);
 
@@ -336,6 +358,7 @@ ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE budgets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE budget_invitations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE categories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE accounts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE expected_income ENABLE ROW LEVEL SECURITY;
 ALTER TABLE category_budgets ENABLE ROW LEVEL SECURITY;
@@ -357,6 +380,13 @@ CREATE POLICY budgets_member_access ON budgets
   USING (
     id IN (SELECT budget_id FROM users WHERE id = auth.uid())
     OR created_by = auth.uid()
+  );
+
+-- Users can see accounts for their budget
+CREATE POLICY accounts_budget_access ON accounts
+  FOR ALL
+  USING (
+    budget_id IN (SELECT budget_id FROM users WHERE id = auth.uid())
   );
 
 -- Users can see transactions for their budget
