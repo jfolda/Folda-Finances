@@ -227,13 +227,14 @@ func calculatePeriod(viewPeriod string, startDate time.Time) SpendingPeriod {
 }
 
 func prorateBudget(monthlyAmount int, viewPeriod string) int {
-	const daysPerMonth = 30.44
-
+	// Calculate how many periods fit in a month and divide budget accordingly
 	switch viewPeriod {
 	case "weekly":
-		return int(math.Round(float64(monthlyAmount) * (7 / daysPerMonth)))
+		// 4 weeks in a month (using 4 for cleaner math)
+		return int(math.Round(float64(monthlyAmount) / 4.0))
 	case "biweekly":
-		return int(math.Round(float64(monthlyAmount) * (14 / daysPerMonth)))
+		// 2 biweekly periods in a month
+		return int(math.Round(float64(monthlyAmount) / 2.0))
 	case "monthly":
 		return monthlyAmount
 	default:
