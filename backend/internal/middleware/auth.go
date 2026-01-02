@@ -3,11 +3,18 @@ package middleware
 import (
 	"context"
 	"crypto/ecdsa"
-	"crypto/x509"
-	"encoding/pem"
+	"crypto/elliptic"
+	"encoding/base64"
+	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
+	"log"
+	"math/big"
 	"net/http"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
@@ -17,36 +24,141 @@ type contextKey string
 
 const UserIDKey contextKey = "user_id"
 
+// JWKS structures
+type JWKS struct {
+	Keys []JWK `json:"keys"`
+}
+
+type JWK struct {
+	Kid string `json:"kid"`
+	Kty string `json:"kty"`
+	Alg string `json:"alg"`
+	Use string `json:"use"`
+	Crv string `json:"crv"`
+	X   string `json:"x"`
+	Y   string `json:"y"`
+}
+
 type AuthMiddleware struct {
 	jwtSecret    string
-	jwtPublicKey *ecdsa.PublicKey
+	supabaseURL  string
+	publicKeys   map[string]*ecdsa.PublicKey
+	keysMutex    sync.RWMutex
+	lastFetch    time.Time
 }
 
-func NewAuthMiddleware(jwtSecret string) *AuthMiddleware {
-	return &AuthMiddleware{
-		jwtSecret:    jwtSecret,
-		jwtPublicKey: nil, // Will be set separately if needed
+func NewAuthMiddleware(jwtSecret string, supabaseURL string) *AuthMiddleware {
+	am := &AuthMiddleware{
+		jwtSecret:   jwtSecret,
+		supabaseURL: supabaseURL,
+		publicKeys:  make(map[string]*ecdsa.PublicKey),
 	}
+
+	// Fetch keys on initialization
+	if supabaseURL != "" {
+		if err := am.fetchJWKS(); err != nil {
+			log.Printf("Warning: Failed to fetch JWKS: %v", err)
+		}
+	}
+
+	return am
 }
 
-func (am *AuthMiddleware) SetPublicKey(publicKeyPEM string) error {
-	block, _ := pem.Decode([]byte(publicKeyPEM))
-	if block == nil {
-		return errors.New("failed to parse PEM block containing the public key")
-	}
+func (am *AuthMiddleware) fetchJWKS() error {
+	jwksURL := fmt.Sprintf("%s/auth/v1/jwks", strings.TrimSuffix(am.supabaseURL, "/"))
 
-	pub, err := x509.ParsePKIXPublicKey(block.Bytes)
+	resp, err := http.Get(jwksURL)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to fetch JWKS: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("JWKS endpoint returned status %d", resp.StatusCode)
 	}
 
-	ecdsaKey, ok := pub.(*ecdsa.PublicKey)
-	if !ok {
-		return errors.New("not an ECDSA public key")
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read JWKS response: %w", err)
 	}
 
-	am.jwtPublicKey = ecdsaKey
+	var jwks JWKS
+	if err := json.Unmarshal(body, &jwks); err != nil {
+		return fmt.Errorf("failed to parse JWKS: %w", err)
+	}
+
+	am.keysMutex.Lock()
+	defer am.keysMutex.Unlock()
+
+	for _, key := range jwks.Keys {
+		if key.Kty == "EC" && key.Crv == "P-256" {
+			pubKey, err := am.parseECPublicKey(key)
+			if err != nil {
+				log.Printf("Warning: Failed to parse key %s: %v", key.Kid, err)
+				continue
+			}
+			am.publicKeys[key.Kid] = pubKey
+		}
+	}
+
+	am.lastFetch = time.Now()
+	log.Printf("✓ Fetched %d public keys from Supabase JWKS", len(am.publicKeys))
 	return nil
+}
+
+func (am *AuthMiddleware) parseECPublicKey(key JWK) (*ecdsa.PublicKey, error) {
+	xBytes, err := base64.RawURLEncoding.DecodeString(key.X)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode X: %w", err)
+	}
+
+	yBytes, err := base64.RawURLEncoding.DecodeString(key.Y)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode Y: %w", err)
+	}
+
+	pubKey := &ecdsa.PublicKey{
+		Curve: nil, // Will be set based on Crv
+		X:     new(big.Int).SetBytes(xBytes),
+		Y:     new(big.Int).SetBytes(yBytes),
+	}
+
+	// Set curve based on Crv parameter
+	switch key.Crv {
+	case "P-256":
+		pubKey.Curve = elliptic.P256()
+	default:
+		return nil, fmt.Errorf("unsupported curve: %s", key.Crv)
+	}
+
+	return pubKey, nil
+}
+
+func (am *AuthMiddleware) getPublicKey(kid string) (*ecdsa.PublicKey, error) {
+	am.keysMutex.RLock()
+	key, exists := am.publicKeys[kid]
+	am.keysMutex.RUnlock()
+
+	if exists {
+		return key, nil
+	}
+
+	// Refresh keys if not found or stale (>1 hour)
+	if time.Since(am.lastFetch) > time.Hour {
+		if err := am.fetchJWKS(); err != nil {
+			return nil, err
+		}
+
+		am.keysMutex.RLock()
+		key, exists = am.publicKeys[kid]
+		am.keysMutex.RUnlock()
+
+		if exists {
+			return key, nil
+		}
+	}
+
+	return nil, fmt.Errorf("public key not found for kid: %s", kid)
 }
 
 func (am *AuthMiddleware) Authenticate(next http.Handler) http.Handler {
@@ -81,11 +193,18 @@ func (am *AuthMiddleware) validateToken(tokenString string) (uuid.UUID, error) {
 		// Check signing method
 		switch token.Method.Alg() {
 		case "ES256":
-			// Use ECDSA public key for ES256
-			if am.jwtPublicKey == nil {
-				return nil, errors.New("public key not configured for ES256")
+			// Get kid (key ID) from token header
+			kid, ok := token.Header["kid"].(string)
+			if !ok {
+				return nil, errors.New("token missing kid header")
 			}
-			return am.jwtPublicKey, nil
+
+			// Get public key from JWKS
+			pubKey, err := am.getPublicKey(kid)
+			if err != nil {
+				return nil, fmt.Errorf("failed to get public key: %w", err)
+			}
+			return pubKey, nil
 		case "HS256":
 			// Use secret for HS256
 			return []byte(am.jwtSecret), nil

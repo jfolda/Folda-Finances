@@ -56,16 +56,8 @@ func main() {
 
 	// Initialize auth middleware
 	jwtSecret := getEnv("SUPABASE_JWT_SECRET", "your-secret-key")
-	authMiddleware := authmiddleware.NewAuthMiddleware(jwtSecret)
-
-	// Set public key if provided (for ES256 tokens)
-	if publicKey := getEnv("SUPABASE_JWT_PUBLIC_KEY", ""); publicKey != "" {
-		if err := authMiddleware.SetPublicKey(publicKey); err != nil {
-			log.Printf("Warning: Failed to set JWT public key: %v", err)
-		} else {
-			log.Println("✓ JWT public key configured for ES256")
-		}
-	}
+	supabaseURL := getEnv("SUPABASE_URL", "")
+	authMiddleware := authmiddleware.NewAuthMiddleware(jwtSecret, supabaseURL)
 
 	// Initialize router
 	r := chi.NewRouter()
