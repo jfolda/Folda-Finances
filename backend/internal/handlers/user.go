@@ -35,15 +35,22 @@ func (h *UserHandler) GetCurrentUser(w http.ResponseWriter, r *http.Request) {
 	if err := h.db.First(&user, "id = ?", userID).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			// Auto-create user record on first API call
+			// Step 1: Create user without budget first (to satisfy foreign key)
 			user = models.User{
 				ID:              userID,
 				Email:           "",  // Will be populated from Supabase metadata if available
 				Name:            "New User",
 				ViewPeriod:      "monthly",
 				PeriodStartDate: time.Now(),
+				BudgetID:        nil, // No budget yet
 			}
 
-			// Create a default budget for the user
+			if err := h.db.Create(&user).Error; err != nil {
+				respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create user"})
+				return
+			}
+
+			// Step 2: Create a default budget (now user exists for foreign key)
 			budget := models.Budget{
 				Name:      "My Budget",
 				CreatedBy: userID,
@@ -53,11 +60,10 @@ func (h *UserHandler) GetCurrentUser(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			// Associate user with the budget
+			// Step 3: Update user with budget ID
 			user.BudgetID = &budget.ID
-
-			if err := h.db.Create(&user).Error; err != nil {
-				respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create user"})
+			if err := h.db.Save(&user).Error; err != nil {
+				respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to update user budget"})
 				return
 			}
 		} else {
