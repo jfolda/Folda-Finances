@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../lib/api';
 import { formatDate, parseCurrency } from '../lib/utils';
+import { CategoryPicker } from '../components/CategoryPicker';
 
 export function AddTransactionPage() {
   const navigate = useNavigate();
@@ -145,20 +146,11 @@ export function AddTransactionPage() {
               >
                 Category *
               </label>
-              <select
-                id="category"
+              <CategoryPicker
+                categories={categories}
                 value={categoryId}
-                onChange={(e) => setCategoryId(e.target.value)}
-                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                required
-              >
-                <option value="">Select a category</option>
-                {categories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.icon} {cat.name}
-                  </option>
-                ))}
-              </select>
+                onChange={setCategoryId}
+              />
             </div>
 
             <div>

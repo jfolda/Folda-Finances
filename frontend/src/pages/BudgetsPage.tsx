@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { apiClient } from '../lib/api';
 import type { Category, CategoryBudget } from '../../../shared/types/api';
 import { PencilIcon, TrashIcon, PlusIcon } from '@heroicons/react/24/outline';
+import { CategoryPicker } from '../components/CategoryPicker';
 
 export function BudgetsPage() {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -253,30 +254,27 @@ export function BudgetsPage() {
             })}
 
             {/* Add New Budget Form */}
-            {showAddForm && unbudgetedCategories.length > 0 && (
+            {showAddForm && (
               <div className="p-4 bg-blue-50 border-t-2 border-blue-200">
                 <h3 className="text-sm font-medium text-gray-900 mb-3">
                   Add New Budget
                 </h3>
-                <div className="flex items-end gap-3">
-                  <div className="flex-1">
+                <div className="space-y-3">
+                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Category
                     </label>
-                    <select
+                    <CategoryPicker
+                      categories={unbudgetedCategories}
                       value={selectedCategoryId}
-                      onChange={(e) => setSelectedCategoryId(e.target.value)}
-                      className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 border"
-                    >
-                      <option value="">Select a category</option>
-                      {unbudgetedCategories.map((cat) => (
-                        <option key={cat.id} value={cat.id}>
-                          {cat.icon} {cat.name}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={(categoryId) => {
+                        setSelectedCategoryId(categoryId);
+                        // Reload categories to include newly created one
+                        loadData();
+                      }}
+                    />
                   </div>
-                  <div className="flex-1">
+                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Monthly Budget
                     </label>
@@ -303,9 +301,9 @@ export function BudgetsPage() {
                   <div className="flex gap-2">
                     <button
                       onClick={saveNewBudget}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
+                      className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
                     >
-                      Add
+                      Add Budget
                     </button>
                     <button
                       onClick={cancelEditing}

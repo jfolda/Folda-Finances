@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../lib/api';
-import { formatDate } from '../lib/utils';
 import { PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { CategoryPicker } from '../components/CategoryPicker';
 
 export function TransactionDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -22,15 +22,19 @@ export function TransactionDetailPage() {
     queryKey: ['transaction', id],
     queryFn: () => apiClient.getTransaction(id!),
     enabled: !!id,
-    onSuccess: (data) => {
-      const tx = data.data;
+  });
+
+  // Initialize form when transaction loads
+  useEffect(() => {
+    if (transactionResponse?.data && !isEditing && !description) {
+      const tx = transactionResponse.data;
       setDescription(tx.description);
       setAmount((Math.abs(tx.amount) / 100).toFixed(2));
       setCategoryId(tx.category_id);
       setAccountId(tx.account_id || '');
       setDate(tx.date.split('T')[0]);
-    },
-  });
+    }
+  }, [transactionResponse, isEditing, description]);
 
   const { data: categoriesResponse } = useQuery({
     queryKey: ['categories'],
@@ -224,19 +228,11 @@ export function TransactionDetailPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Category *
                   </label>
-                  <select
+                  <CategoryPicker
+                    categories={categories}
                     value={categoryId}
-                    onChange={(e) => setCategoryId(e.target.value)}
-                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 border"
-                    required
-                  >
-                    <option value="">Select a category</option>
-                    {categories.map((cat) => (
-                      <option key={cat.id} value={cat.id}>
-                        {cat.icon} {cat.name}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={setCategoryId}
+                  />
                 </div>
 
                 <div>
