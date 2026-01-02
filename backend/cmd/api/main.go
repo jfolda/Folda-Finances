@@ -54,6 +54,7 @@ func main() {
 	spendingHandler := handlers.NewSpendingHandler(db)
 	budgetHandler := handlers.NewBudgetHandler(db)
 	incomeHandler := handlers.NewIncomeHandler(db)
+	invitationHandler := handlers.NewInvitationHandler(db)
 
 	// Initialize auth middleware
 	jwtSecret := getEnv("SUPABASE_JWT_SECRET", "your-secret-key")
@@ -137,6 +138,17 @@ func main() {
 				r.Post("/", incomeHandler.CreateExpectedIncome)
 				r.Put("/{id}", incomeHandler.UpdateExpectedIncome)
 				r.Delete("/{id}", incomeHandler.DeleteExpectedIncome)
+			})
+
+			// Budget invitation endpoints
+			r.Route("/budgets/{budgetId}/invite", func(r chi.Router) {
+				r.Post("/", invitationHandler.InviteToBudget)
+			})
+
+			r.Route("/budget-invitations", func(r chi.Router) {
+				r.Get("/", invitationHandler.GetBudgetInvitations)
+				r.Post("/{token}/accept", invitationHandler.AcceptBudgetInvitation)
+				r.Post("/{token}/decline", invitationHandler.DeclineBudgetInvitation)
 			})
 		})
 	})
