@@ -2,6 +2,9 @@ package middleware
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"crypto/x509"
+	"encoding/pem"
 	"errors"
 	"net/http"
 	"strings"
@@ -15,13 +18,35 @@ type contextKey string
 const UserIDKey contextKey = "user_id"
 
 type AuthMiddleware struct {
-	jwtSecret string
+	jwtSecret    string
+	jwtPublicKey *ecdsa.PublicKey
 }
 
 func NewAuthMiddleware(jwtSecret string) *AuthMiddleware {
 	return &AuthMiddleware{
-		jwtSecret: jwtSecret,
+		jwtSecret:    jwtSecret,
+		jwtPublicKey: nil, // Will be set separately if needed
 	}
+}
+
+func (am *AuthMiddleware) SetPublicKey(publicKeyPEM string) error {
+	block, _ := pem.Decode([]byte(publicKeyPEM))
+	if block == nil {
+		return errors.New("failed to parse PEM block containing the public key")
+	}
+
+	pub, err := x509.ParsePKIXPublicKey(block.Bytes)
+	if err != nil {
+		return err
+	}
+
+	ecdsaKey, ok := pub.(*ecdsa.PublicKey)
+	if !ok {
+		return errors.New("not an ECDSA public key")
+	}
+
+	am.jwtPublicKey = ecdsaKey
+	return nil
 }
 
 func (am *AuthMiddleware) Authenticate(next http.Handler) http.Handler {
@@ -53,12 +78,21 @@ func (am *AuthMiddleware) Authenticate(next http.Handler) http.Handler {
 
 func (am *AuthMiddleware) validateToken(tokenString string) (uuid.UUID, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		// Supabase uses HS256 (HMAC-SHA256) signing method
-		if token.Method.Alg() != "HS256" {
+		// Check signing method
+		switch token.Method.Alg() {
+		case "ES256":
+			// Use ECDSA public key for ES256
+			if am.jwtPublicKey == nil {
+				return nil, errors.New("public key not configured for ES256")
+			}
+			return am.jwtPublicKey, nil
+		case "HS256":
+			// Use secret for HS256
+			return []byte(am.jwtSecret), nil
+		default:
 			println("Unexpected signing method:", token.Method.Alg())
 			return nil, errors.New("unexpected signing method: " + token.Method.Alg())
 		}
-		return []byte(am.jwtSecret), nil
 	})
 
 	if err != nil {
