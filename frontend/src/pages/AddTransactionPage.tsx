@@ -12,6 +12,7 @@ export function AddTransactionPage() {
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
   const [categoryId, setCategoryId] = useState('');
+  const [accountId, setAccountId] = useState('');
   const [date, setDate] = useState(formatDate(new Date()));
   const [error, setError] = useState('');
 
@@ -20,7 +21,13 @@ export function AddTransactionPage() {
     queryFn: () => apiClient.getCategories(),
   });
 
+  const { data: accountsResponse } = useQuery({
+    queryKey: ['accounts'],
+    queryFn: () => apiClient.getAccounts(),
+  });
+
   const categories = categoriesResponse?.data || [];
+  const accounts = accountsResponse?.data.filter(a => a.is_active) || [];
 
   const createMutation = useMutation({
     mutationFn: apiClient.createTransaction.bind(apiClient),
@@ -60,6 +67,7 @@ export function AddTransactionPage() {
       amount: -Math.abs(amountInCents), // Negative for expenses
       category_id: categoryId,
       date,
+      account_id: accountId || null,
     });
   };
 
@@ -151,6 +159,31 @@ export function AddTransactionPage() {
                   </option>
                 ))}
               </select>
+            </div>
+
+            <div>
+              <label
+                htmlFor="account"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Account (Optional)
+              </label>
+              <select
+                id="account"
+                value={accountId}
+                onChange={(e) => setAccountId(e.target.value)}
+                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+              >
+                <option value="">No account selected</option>
+                {accounts.map((account) => (
+                  <option key={account.id} value={account.id}>
+                    {account.name} (${(account.balance / 100).toFixed(2)})
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-sm text-gray-500">
+                Link this transaction to a specific account
+              </p>
             </div>
 
             <div>

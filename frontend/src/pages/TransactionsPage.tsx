@@ -187,8 +187,15 @@ function TransactionRow({ transaction }: { transaction: Transaction }) {
     queryFn: () => apiClient.getCategories(),
   });
 
+  const { data: accountsResponse } = useQuery({
+    queryKey: ['accounts'],
+    queryFn: () => apiClient.getAccounts(),
+    enabled: !!transaction.account_id,
+  });
+
   const categories = categoriesResponse?.data || [];
   const category = categories.find((c) => c.id === transaction.category_id);
+  const account = accountsResponse?.data.find((a) => a.id === transaction.account_id);
 
   return (
     <Link
@@ -209,7 +216,10 @@ function TransactionRow({ transaction }: { transaction: Transaction }) {
             <div>
               <p className="font-medium text-gray-900">{transaction.description}</p>
               <p className="text-sm text-gray-500">
-                {category?.name} • {new Date(transaction.date).toLocaleDateString()}
+                {category?.name}
+                {account && <> • {account.name}</>}
+                {' • '}
+                {new Date(transaction.date).toLocaleDateString()}
               </p>
             </div>
           </div>
