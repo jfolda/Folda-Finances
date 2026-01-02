@@ -109,6 +109,10 @@ class ApiClient {
     );
   }
 
+  async getTransaction(id: string): Promise<ApiResponse<Transaction>> {
+    return this.request<ApiResponse<Transaction>>(`/transactions/${id}`);
+  }
+
   async createTransaction(
     data: CreateTransactionRequest
   ): Promise<ApiResponse<Transaction>> {
