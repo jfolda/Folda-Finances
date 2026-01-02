@@ -49,6 +49,7 @@ func main() {
 	// Initialize handlers
 	userHandler := handlers.NewUserHandler(db)
 	categoryHandler := handlers.NewCategoryHandler(db)
+	accountHandler := handlers.NewAccountHandler(db)
 	transactionHandler := handlers.NewTransactionHandler(db)
 	spendingHandler := handlers.NewSpendingHandler(db)
 	budgetHandler := handlers.NewBudgetHandler(db)
@@ -101,6 +102,15 @@ func main() {
 			// Category endpoints
 			r.Route("/categories", func(r chi.Router) {
 				r.Get("/", categoryHandler.GetCategories)
+			})
+
+			// Account endpoints
+			r.Route("/accounts", func(r chi.Router) {
+				r.Get("/", accountHandler.ListAccounts)
+				r.Post("/", accountHandler.CreateAccount)
+				r.Get("/{id}", accountHandler.GetAccount)
+				r.Put("/{id}", accountHandler.UpdateAccount)
+				r.Delete("/{id}", accountHandler.DeleteAccount)
 			})
 
 			// Transaction endpoints

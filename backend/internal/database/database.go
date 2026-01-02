@@ -54,6 +54,7 @@ func AutoMigrate(db *gorm.DB) error {
 		&models.User{},
 		&models.Budget{},
 		&models.Category{},
+		&models.Account{},
 		&models.Transaction{},
 		&models.CategoryBudget{},
 		&models.CategoryBudgetSplit{},

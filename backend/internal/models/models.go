@@ -46,11 +46,26 @@ type Category struct {
 	CreatedAt time.Time  `json:"created_at"`
 }
 
+// Account represents a bank account, credit card, cash, etc.
+type Account struct {
+	ID        uuid.UUID `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"id"`
+	BudgetID  uuid.UUID `gorm:"type:uuid;not null" json:"budget_id"`
+	Name      string    `gorm:"type:varchar(255);not null" json:"name"`
+	Type      string    `gorm:"type:varchar(50);not null" json:"type"` // checking, savings, credit_card, cash, investment, other
+	Balance   int       `gorm:"not null;default:0" json:"balance"`     // in cents
+	Currency  string    `gorm:"type:varchar(3);not null;default:'USD'" json:"currency"`
+	IsActive  bool      `gorm:"default:true" json:"is_active"`
+	Notes     string    `gorm:"type:text" json:"notes"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
 // Transaction represents a financial transaction
 type Transaction struct {
 	ID                 uuid.UUID  `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"id"`
 	UserID             uuid.UUID  `gorm:"type:uuid;not null" json:"user_id"`
 	BudgetID           uuid.UUID  `gorm:"type:uuid;not null" json:"budget_id"`
+	AccountID          *uuid.UUID `gorm:"type:uuid" json:"account_id"`
 	Amount             int        `gorm:"not null" json:"amount"` // in cents
 	Description        string     `gorm:"type:text" json:"description"`
 	MerchantName       string     `gorm:"type:varchar(255)" json:"merchant_name"`
