@@ -65,7 +65,7 @@ func NewAuthMiddleware(jwtSecret string, supabaseURL string) *AuthMiddleware {
 }
 
 func (am *AuthMiddleware) fetchJWKS() error {
-	jwksURL := fmt.Sprintf("%s/auth/v1/jwks", strings.TrimSuffix(am.supabaseURL, "/"))
+	jwksURL := fmt.Sprintf("%s/auth/v1/.well-known/jwks.json", strings.TrimSuffix(am.supabaseURL, "/"))
 
 	resp, err := http.Get(jwksURL)
 	if err != nil {
