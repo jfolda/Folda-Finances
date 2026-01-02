@@ -31,6 +31,11 @@ func (h *UserHandler) GetCurrentUser(w http.ResponseWriter, r *http.Request) {
 		respondJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
 		return
 	}
+	email, err := middleware.GetUserEmail(r)
+	if err != nil {
+		respondJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return
+	}
 
 	var user models.User
 	if err := h.db.First(&user, "id = ?", userID).Error; err != nil {
@@ -39,7 +44,7 @@ func (h *UserHandler) GetCurrentUser(w http.ResponseWriter, r *http.Request) {
 			// Step 1: Create user without budget first (to satisfy foreign key)
 			user = models.User{
 				ID:              userID,
-				Email:           "",  // Will be populated from Supabase metadata if available
+				Email:           email, // Will be populated from Supabase metadata if available
 				Name:            "New User",
 				ViewPeriod:      "monthly",
 				PeriodStartDate: time.Now(),

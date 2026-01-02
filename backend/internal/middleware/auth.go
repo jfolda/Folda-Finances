@@ -40,11 +40,11 @@ type JWK struct {
 }
 
 type AuthMiddleware struct {
-	jwtSecret    string
-	supabaseURL  string
-	publicKeys   map[string]*ecdsa.PublicKey
-	keysMutex    sync.RWMutex
-	lastFetch    time.Time
+	jwtSecret   string
+	supabaseURL string
+	publicKeys  map[string]*ecdsa.PublicKey
+	keysMutex   sync.RWMutex
+	lastFetch   time.Time
 }
 
 func NewAuthMiddleware(jwtSecret string, supabaseURL string) *AuthMiddleware {
@@ -247,4 +247,17 @@ func GetUserID(r *http.Request) (uuid.UUID, error) {
 		return uuid.Nil, errors.New("user ID not found in context")
 	}
 	return userID, nil
+}
+
+func GetUserEmail(r *http.Request) (string, error) {
+	claims, ok := r.Context().Value("claims").(jwt.MapClaims)
+	if !ok {
+		return "", errors.New("claims not found in context")
+	}
+
+	email, ok := claims["email"].(string)
+	if !ok {
+		return "", errors.New("email not found in claims")
+	}
+	return email, nil
 }
