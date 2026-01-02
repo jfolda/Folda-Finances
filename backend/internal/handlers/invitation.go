@@ -23,8 +23,8 @@ func NewInvitationHandler(db *gorm.DB) *InvitationHandler {
 }
 
 type CreateBudgetInvitationRequest struct {
-	Email string `json:"email"`
-	Role  string `json:"role"`
+	Email string `json:"invitee_email"`
+	Role  string `json:"invited_role"`
 }
 
 // InviteToBudget creates a new budget invitation
