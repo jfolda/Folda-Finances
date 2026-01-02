@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/yourusername/folda-finances/internal/middleware"
@@ -106,7 +107,13 @@ func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		updates["view_period"] = *req.ViewPeriod
 	}
 	if req.PeriodStartDate != nil {
-		updates["period_start_date"] = *req.PeriodStartDate
+		// Convert string to period_anchor_day integer
+		anchorDay, err := strconv.Atoi(*req.PeriodStartDate)
+		if err != nil {
+			respondJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid period_start_date"})
+			return
+		}
+		updates["period_anchor_day"] = anchorDay
 	}
 
 	if err := h.db.Model(&user).Updates(updates).Error; err != nil {
