@@ -8,6 +8,7 @@ import { WhatCanISpendPage } from './pages/WhatCanISpendPage';
 import { TransactionsPage } from './pages/TransactionsPage';
 import { AddTransactionPage } from './pages/AddTransactionPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { BudgetsPage } from './pages/BudgetsPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -68,13 +69,12 @@ function AppRoutes() {
         }
       />
 
-      {/* Placeholder routes for future pages */}
       <Route
         path="/budgets"
         element={
           <ProtectedRoute>
             <Layout>
-              <PlaceholderPage title="Budgets" description="Budget management coming soon!" />
+              <BudgetsPage />
             </Layout>
           </ProtectedRoute>
         }
@@ -115,17 +115,6 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   }
 
   return <>{children}</>;
-}
-
-function PlaceholderPage({ title, description }: { title: string; description: string }) {
-  return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="text-center max-w-md px-4">
-        <h1 className="text-3xl font-bold text-gray-900 mb-4">{title}</h1>
-        <p className="text-gray-600">{description}</p>
-      </div>
-    </div>
-  );
 }
 
 export default App;
