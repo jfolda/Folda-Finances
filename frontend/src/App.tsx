@@ -7,6 +7,7 @@ import { SignupPage } from './pages/auth/SignupPage';
 import { WhatCanISpendPage } from './pages/WhatCanISpendPage';
 import { TransactionsPage } from './pages/TransactionsPage';
 import { AddTransactionPage } from './pages/AddTransactionPage';
+import { SettingsPage } from './pages/SettingsPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -83,7 +84,7 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Layout>
-              <PlaceholderPage title="Settings" description="Settings page coming soon!" />
+              <SettingsPage />
             </Layout>
           </ProtectedRoute>
         }
