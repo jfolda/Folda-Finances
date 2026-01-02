@@ -53,9 +53,10 @@ func (am *AuthMiddleware) Authenticate(next http.Handler) http.Handler {
 
 func (am *AuthMiddleware) validateToken(tokenString string) (uuid.UUID, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		// Verify signing method
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, errors.New("unexpected signing method")
+		// Supabase uses HS256 (HMAC-SHA256) signing method
+		if token.Method.Alg() != "HS256" {
+			println("Unexpected signing method:", token.Method.Alg())
+			return nil, errors.New("unexpected signing method: " + token.Method.Alg())
 		}
 		return []byte(am.jwtSecret), nil
 	})
