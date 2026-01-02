@@ -102,6 +102,7 @@ func main() {
 			// Category endpoints
 			r.Route("/categories", func(r chi.Router) {
 				r.Get("/", categoryHandler.GetCategories)
+				r.Post("/", categoryHandler.CreateCategory)
 			})
 
 			// Account endpoints

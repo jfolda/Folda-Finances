@@ -9,6 +9,7 @@ import type {
   CreateTransactionRequest,
   UpdateTransactionRequest,
   Category,
+  CreateCategoryRequest,
   CategoryBudget,
   CreateCategoryBudgetRequest,
   UpdateCategoryBudgetRequest,
@@ -175,6 +176,15 @@ class ApiClient {
   // Category endpoints
   async getCategories(): Promise<ApiResponse<Category[]>> {
     return this.request<ApiResponse<Category[]>>('/categories');
+  }
+
+  async createCategory(
+    data: CreateCategoryRequest
+  ): Promise<ApiResponse<Category>> {
+    return this.request<ApiResponse<Category>>('/categories', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   }
 
   // Budget endpoints
