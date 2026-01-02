@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/yourusername/folda-finances/internal/middleware"
 	"github.com/yourusername/folda-finances/internal/models"
@@ -33,11 +34,36 @@ func (h *UserHandler) GetCurrentUser(w http.ResponseWriter, r *http.Request) {
 	var user models.User
 	if err := h.db.First(&user, "id = ?", userID).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			respondJSON(w, http.StatusNotFound, map[string]string{"error": "user not found"})
+			// Auto-create user record on first API call
+			user = models.User{
+				ID:              userID,
+				Email:           "",  // Will be populated from Supabase metadata if available
+				Name:            "New User",
+				ViewPeriod:      "monthly",
+				PeriodStartDate: time.Now(),
+			}
+
+			// Create a default budget for the user
+			budget := models.Budget{
+				Name:      "My Budget",
+				CreatedBy: userID,
+			}
+			if err := h.db.Create(&budget).Error; err != nil {
+				respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create budget"})
+				return
+			}
+
+			// Associate user with the budget
+			user.BudgetID = &budget.ID
+
+			if err := h.db.Create(&user).Error; err != nil {
+				respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create user"})
+				return
+			}
+		} else {
+			respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to fetch user"})
 			return
 		}
-		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to fetch user"})
-		return
 	}
 
 	respondJSON(w, http.StatusOK, map[string]interface{}{"data": user})
