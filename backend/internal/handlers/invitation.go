@@ -179,16 +179,40 @@ func (h *InvitationHandler) AcceptBudgetInvitation(w http.ResponseWriter, r *htt
 		return
 	}
 
-	// Get user and verify email matches
-	var user models.User
-	if err := h.db.First(&user, "id = ?", userID).Error; err != nil {
-		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to fetch user"})
+	// Get user email from JWT
+	userEmail, err := middleware.GetUserEmail(r)
+	if err != nil {
+		respondJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
 		return
 	}
 
-	if user.Email != invitation.InviteeEmail {
+	// Verify email matches invitation
+	if userEmail != invitation.InviteeEmail {
 		respondJSON(w, http.StatusForbidden, map[string]string{"error": "this invitation is for a different email address"})
 		return
+	}
+
+	// Get or create user record
+	var user models.User
+	if err := h.db.First(&user, "id = ?", userID).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			// Auto-create user record if it doesn't exist
+			user = models.User{
+				ID:              userID,
+				Email:           userEmail,
+				Name:            "New User",
+				ViewPeriod:      "monthly",
+				PeriodStartDate: time.Now(),
+				BudgetID:        nil,
+			}
+			if err := h.db.Create(&user).Error; err != nil {
+				respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create user"})
+				return
+			}
+		} else {
+			respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to fetch user"})
+			return
+		}
 	}
 
 	// Update user's budget_id
@@ -214,12 +238,6 @@ func (h *InvitationHandler) AcceptBudgetInvitation(w http.ResponseWriter, r *htt
 
 // DeclineBudgetInvitation declines an invitation
 func (h *InvitationHandler) DeclineBudgetInvitation(w http.ResponseWriter, r *http.Request) {
-	userID, err := middleware.GetUserID(r)
-	if err != nil {
-		respondJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
-		return
-	}
-
 	token := chi.URLParam(r, "token")
 	if token == "" {
 		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "token is required"})
@@ -239,14 +257,15 @@ func (h *InvitationHandler) DeclineBudgetInvitation(w http.ResponseWriter, r *ht
 		return
 	}
 
-	// Get user and verify email matches
-	var user models.User
-	if err := h.db.First(&user, "id = ?", userID).Error; err != nil {
-		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to fetch user"})
+	// Get user email from JWT
+	userEmail, err := middleware.GetUserEmail(r)
+	if err != nil {
+		respondJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
 		return
 	}
 
-	if user.Email != invitation.InviteeEmail {
+	// Verify email matches invitation
+	if userEmail != invitation.InviteeEmail {
 		respondJSON(w, http.StatusForbidden, map[string]string{"error": "this invitation is for a different email address"})
 		return
 	}
