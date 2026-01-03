@@ -195,53 +195,69 @@ func (am *AuthMiddleware) Authenticate(next http.Handler) http.Handler {
 func (am *AuthMiddleware) validateToken(tokenString string) (uuid.UUID, jwt.MapClaims, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		// Check signing method
-		switch token.Method.Alg() {
+		alg := token.Method.Alg()
+		log.Printf("Token signing method: %s", alg)
+
+		switch alg {
 		case "ES256":
 			// Get kid (key ID) from token header
 			kid, ok := token.Header["kid"].(string)
 			if !ok {
+				log.Printf("Token missing kid header. Headers: %+v", token.Header)
 				return nil, errors.New("token missing kid header")
 			}
+			log.Printf("Looking up public key for kid: %s", kid)
 
 			// Get public key from JWKS
 			pubKey, err := am.getPublicKey(kid)
 			if err != nil {
+				log.Printf("Failed to get public key for kid %s: %v", kid, err)
 				return nil, fmt.Errorf("failed to get public key: %w", err)
 			}
+			log.Printf("✓ Found public key for kid: %s", kid)
 			return pubKey, nil
 		case "HS256":
 			// Use secret for HS256
+			log.Printf("Using HS256 with JWT secret")
 			return []byte(am.jwtSecret), nil
 		default:
-			log.Printf("Unexpected signing method: %s", token.Method.Alg())
-			return nil, errors.New("unexpected signing method: " + token.Method.Alg())
+			log.Printf("Unexpected signing method: %s", alg)
+			return nil, errors.New("unexpected signing method: " + alg)
 		}
 	})
 
 	if err != nil {
+		log.Printf("JWT parse error: %v", err)
 		return uuid.Nil, nil, err
 	}
 
 	if !token.Valid {
+		log.Printf("Token marked as invalid after parsing")
 		return uuid.Nil, nil, errors.New("invalid token")
 	}
 
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
+		log.Printf("Failed to cast token claims to MapClaims")
 		return uuid.Nil, nil, errors.New("invalid token claims")
 	}
+
+	log.Printf("Token claims: %+v", claims)
 
 	// Extract user ID from Supabase token (usually in 'sub' claim)
 	sub, ok := claims["sub"].(string)
 	if !ok {
+		log.Printf("Missing or invalid 'sub' claim in token")
 		return uuid.Nil, nil, errors.New("missing sub claim")
 	}
 
 	userID, err := uuid.Parse(sub)
 	if err != nil {
+		log.Printf("Invalid UUID in sub claim: %s", sub)
 		return uuid.Nil, nil, errors.New("invalid user ID in token")
 	}
 
+	log.Printf("✓ Successfully validated token for user: %s", userID)
 	return userID, claims, nil
 }
 
