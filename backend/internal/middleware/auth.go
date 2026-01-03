@@ -23,6 +23,7 @@ import (
 type contextKey string
 
 const UserIDKey contextKey = "user_id"
+const ClaimsKey contextKey = "claims"
 
 // JWKS structures
 type JWKS struct {
@@ -175,20 +176,21 @@ func (am *AuthMiddleware) Authenticate(next http.Handler) http.Handler {
 			return
 		}
 
-		userID, err := am.validateToken(tokenString)
+		userID, claims, err := am.validateToken(tokenString)
 		if err != nil {
 			// Log the actual error for debugging
-			println("JWT validation error:", err.Error())
+			log.Printf("JWT validation error: %v", err)
 			http.Error(w, `{"error":"invalid or expired token"}`, http.StatusUnauthorized)
 			return
 		}
 
 		ctx := context.WithValue(r.Context(), UserIDKey, userID)
+		ctx = context.WithValue(ctx, ClaimsKey, claims)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
-func (am *AuthMiddleware) validateToken(tokenString string) (uuid.UUID, error) {
+func (am *AuthMiddleware) validateToken(tokenString string) (uuid.UUID, jwt.MapClaims, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		// Check signing method
 		switch token.Method.Alg() {
@@ -209,36 +211,36 @@ func (am *AuthMiddleware) validateToken(tokenString string) (uuid.UUID, error) {
 			// Use secret for HS256
 			return []byte(am.jwtSecret), nil
 		default:
-			println("Unexpected signing method:", token.Method.Alg())
+			log.Printf("Unexpected signing method: %s", token.Method.Alg())
 			return nil, errors.New("unexpected signing method: " + token.Method.Alg())
 		}
 	})
 
 	if err != nil {
-		return uuid.Nil, err
+		return uuid.Nil, nil, err
 	}
 
 	if !token.Valid {
-		return uuid.Nil, errors.New("invalid token")
+		return uuid.Nil, nil, errors.New("invalid token")
 	}
 
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
-		return uuid.Nil, errors.New("invalid token claims")
+		return uuid.Nil, nil, errors.New("invalid token claims")
 	}
 
 	// Extract user ID from Supabase token (usually in 'sub' claim)
 	sub, ok := claims["sub"].(string)
 	if !ok {
-		return uuid.Nil, errors.New("missing sub claim")
+		return uuid.Nil, nil, errors.New("missing sub claim")
 	}
 
 	userID, err := uuid.Parse(sub)
 	if err != nil {
-		return uuid.Nil, errors.New("invalid user ID in token")
+		return uuid.Nil, nil, errors.New("invalid user ID in token")
 	}
 
-	return userID, nil
+	return userID, claims, nil
 }
 
 func GetUserID(r *http.Request) (uuid.UUID, error) {
