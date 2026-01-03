@@ -270,7 +270,7 @@ func GetUserID(r *http.Request) (uuid.UUID, error) {
 }
 
 func GetUserEmail(r *http.Request) (string, error) {
-	claims, ok := r.Context().Value("claims").(jwt.MapClaims)
+	claims, ok := r.Context().Value(ClaimsKey).(jwt.MapClaims)
 	if !ok {
 		return "", errors.New("claims not found in context")
 	}
