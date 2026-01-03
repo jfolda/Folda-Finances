@@ -60,6 +60,8 @@ func NewAuthMiddleware(jwtSecret string, supabaseURL string) *AuthMiddleware {
 		if err := am.fetchJWKS(); err != nil {
 			log.Printf("Warning: Failed to fetch JWKS: %v", err)
 		}
+	} else {
+		log.Printf("⚠️  WARNING: SUPABASE_URL is not set - ES256 JWT validation will fail!")
 	}
 
 	return am
