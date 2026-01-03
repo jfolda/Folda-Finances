@@ -1,5 +1,5 @@
 // Signup page
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -10,8 +10,15 @@ export function SignupPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { signUp } = useAuth();
+  const { signUp, user } = useAuth();
   const navigate = useNavigate();
+
+  // Redirect to home if user is created and logged in
+  useEffect(() => {
+    if (user) {
+      navigate('/', { replace: true });
+    }
+  }, [user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,10 +38,9 @@ export function SignupPage() {
 
     try {
       await signUp(email, password, name);
-      navigate('/onboarding');
+      // Don't navigate here - let the useEffect handle it when user is set
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create account');
-    } finally {
       setLoading(false);
     }
   };
