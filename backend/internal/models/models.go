@@ -15,7 +15,7 @@ type User struct {
 	BudgetID         *uuid.UUID `gorm:"type:uuid" json:"budget_id"`
 	BudgetRole       string     `gorm:"type:varchar(20);default:'read_write'" json:"budget_role"`
 	ViewPeriod       string     `gorm:"type:varchar(20);default:'monthly'" json:"view_period"`
-	PeriodStartDate  time.Time  `gorm:"type:date;default:CURRENT_DATE" json:"period_start_date"`
+	PeriodStartDate  *time.Time `gorm:"type:date" json:"period_start_date"`
 	PeriodAnchorDay  *int       `gorm:"type:integer" json:"period_anchor_day"`
 	IsPremium        bool       `gorm:"default:false" json:"is_premium"`
 	PremiumExpiresAt *time.Time `gorm:"type:timestamp" json:"premium_expires_at"`

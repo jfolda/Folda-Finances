@@ -87,7 +87,11 @@ func (h *SpendingHandler) GetSpendingAvailable(w http.ResponseWriter, r *http.Re
 	}
 
 	// Calculate current period
-	period := calculatePeriod(user.ViewPeriod, user.PeriodStartDate)
+	startDate := time.Now()
+	if user.PeriodStartDate != nil {
+		startDate = *user.PeriodStartDate
+	}
+	period := calculatePeriod(user.ViewPeriod, startDate)
 
 	// Get category budgets for this budget
 	var categoryBudgets []models.CategoryBudget

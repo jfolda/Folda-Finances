@@ -47,7 +47,7 @@ func (h *UserHandler) GetCurrentUser(w http.ResponseWriter, r *http.Request) {
 				Email:           email, // Will be populated from Supabase metadata if available
 				Name:            "New User",
 				ViewPeriod:      "monthly",
-				PeriodStartDate: time.Now(),
+				PeriodStartDate: func() *time.Time { t := time.Now(); return &t }(),
 				BudgetID:        nil, // No budget yet
 			}
 

@@ -202,7 +202,7 @@ func (h *InvitationHandler) AcceptBudgetInvitation(w http.ResponseWriter, r *htt
 				Email:           userEmail,
 				Name:            "New User",
 				ViewPeriod:      "monthly",
-				PeriodStartDate: time.Now(),
+				PeriodStartDate: func() *time.Time { t := time.Now(); return &t }(),
 				BudgetID:        nil,
 			}
 			if err := h.db.Create(&user).Error; err != nil {
