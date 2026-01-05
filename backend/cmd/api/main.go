@@ -130,7 +130,12 @@ func main() {
 				r.Post("/", budgetHandler.CreateCategoryBudget)
 				r.Put("/{id}", budgetHandler.UpdateCategoryBudget)
 				r.Delete("/{id}", budgetHandler.DeleteCategoryBudget)
+				r.Get("/{id}/splits", budgetHandler.GetCategoryBudgetSplits)
+				r.Put("/{id}/splits", budgetHandler.UpdateCategoryBudgetSplits)
 			})
+
+			// Budget member endpoints
+			r.Get("/budget/members", budgetHandler.GetBudgetMembers)
 
 			// Expected income endpoints
 			r.Route("/expected-income", func(r chi.Router) {
