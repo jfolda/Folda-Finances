@@ -7,7 +7,7 @@
 
 export type BudgetRole = 'owner' | 'admin' | 'read_write' | 'read_only';
 export type ViewPeriod = 'weekly' | 'biweekly' | 'monthly';
-export type AllocationType = 'pooled' | 'split_percentage' | 'split_fixed';
+export type AllocationType = 'pooled' | 'split';
 
 // Budget entity (shared by multiple users)
 export interface Budget {

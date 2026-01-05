@@ -289,6 +289,35 @@ class ApiClient {
     });
   }
 
+  async getCategoryBudgetSplits(
+    categoryBudgetId: string
+  ): Promise<ApiResponse<CategoryBudgetSplit[]>> {
+    return this.request<ApiResponse<CategoryBudgetSplit[]>>(
+      `/category-budgets/${categoryBudgetId}/splits`
+    );
+  }
+
+  async updateCategoryBudgetSplits(
+    categoryBudgetId: string,
+    splits: {
+      user_id: string;
+      allocation_percentage?: number;
+      allocation_amount?: number;
+    }[]
+  ): Promise<ApiResponse<CategoryBudgetSplit[]>> {
+    return this.request<ApiResponse<CategoryBudgetSplit[]>>(
+      `/category-budgets/${categoryBudgetId}/splits`,
+      {
+        method: 'PUT',
+        body: JSON.stringify({ splits }),
+      }
+    );
+  }
+
+  async getBudgetMembers(): Promise<ApiResponse<User[]>> {
+    return this.request<ApiResponse<User[]>>('/budget/members');
+  }
+
   // Expected income endpoints
   async getExpectedIncome(): Promise<ApiResponse<ExpectedIncome[]>> {
     return this.request<ApiResponse<ExpectedIncome[]>>('/expected-income');
