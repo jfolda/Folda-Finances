@@ -11,6 +11,7 @@ import type {
   Category,
   CreateCategoryRequest,
   CategoryBudget,
+  CategoryBudgetSplit,
   CreateCategoryBudgetRequest,
   UpdateCategoryBudgetRequest,
   ExpectedIncome,
@@ -314,7 +315,7 @@ class ApiClient {
     );
   }
 
-  async getBudgetMembers(): Promise<ApiResponse<User[]>> {
+  async getCurrentBudgetMembers(): Promise<ApiResponse<User[]>> {
     return this.request<ApiResponse<User[]>>('/budget/members');
   }
 

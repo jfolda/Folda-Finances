@@ -9,7 +9,7 @@ describe('ApiClient - Budget Splitting', () => {
     vi.clearAllMocks();
   });
 
-  describe('getBudgetMembers', () => {
+  describe('getCurrentBudgetMembers', () => {
     it('should fetch budget members successfully', async () => {
       const mockMembers = [
         {
@@ -31,7 +31,7 @@ describe('ApiClient - Budget Splitting', () => {
         json: async () => ({ data: mockMembers }),
       });
 
-      const result = await apiClient.getBudgetMembers();
+      const result = await apiClient.getCurrentBudgetMembers();
 
       expect(result.data).toEqual(mockMembers);
       expect(global.fetch).toHaveBeenCalledWith(
@@ -233,7 +233,7 @@ describe('ApiClient - Budget Splitting', () => {
         json: async () => ({ error: 'unauthorized' }),
       });
 
-      await expect(apiClient.getBudgetMembers()).rejects.toThrow();
+      await expect(apiClient.getCurrentBudgetMembers()).rejects.toThrow();
     });
   });
 });
@@ -253,7 +253,7 @@ describe('ApiClient - Token Management', () => {
       json: async () => ({ data: [] }),
     });
 
-    apiClient.getBudgetMembers();
+    apiClient.getCurrentBudgetMembers();
 
     expect(global.fetch).toHaveBeenCalledWith(
       expect.any(String),
@@ -274,7 +274,7 @@ describe('ApiClient - Token Management', () => {
       json: async () => ({ data: [] }),
     });
 
-    apiClient.getBudgetMembers();
+    apiClient.getCurrentBudgetMembers();
 
     const headers = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1]
       ?.headers as Record<string, string>;
