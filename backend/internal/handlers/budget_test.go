@@ -52,13 +52,14 @@ func createTestUser(t *testing.T, db *gorm.DB, email string) (*models.User, *mod
 	}
 
 	// Create user
+	now := time.Now()
 	user := &models.User{
 		ID:              userID,
 		Email:           email,
 		Name:            "Test User",
 		BudgetID:        &budget.ID,
 		ViewPeriod:      "monthly",
-		PeriodStartDate: time.Now(),
+		PeriodStartDate: &now,
 	}
 	if err := db.Create(user).Error; err != nil {
 		t.Fatalf("Failed to create test user: %v", err)
@@ -94,7 +95,7 @@ func TestGetBudgetMembers(t *testing.T) {
 		Name:            "Test User 2",
 		BudgetID:        &budget.ID,
 		ViewPeriod:      "monthly",
-		PeriodStartDate: time.Now(),
+		PeriodStartDate: func() *time.Time { t := time.Now(); return &t }(),
 	}
 	db.Create(user2)
 
@@ -175,7 +176,7 @@ func TestUpdateCategoryBudgetSplits(t *testing.T) {
 		Name:            "Test User 2",
 		BudgetID:        &budget.ID,
 		ViewPeriod:      "monthly",
-		PeriodStartDate: time.Now(),
+		PeriodStartDate: func() *time.Time { t := time.Now(); return &t }(),
 	}
 	db.Create(user2)
 
@@ -260,7 +261,7 @@ func TestUpdateCategoryBudgetSplits_ValidationErrors(t *testing.T) {
 		Name:            "Test User 2",
 		BudgetID:        &otherBudget.ID, // Different budget!
 		ViewPeriod:      "monthly",
-		PeriodStartDate: time.Now(),
+		PeriodStartDate: func() *time.Time { t := time.Now(); return &t }(),
 	}
 	db.Create(user2)
 
@@ -324,7 +325,7 @@ func TestGetCategoryBudgetSplits(t *testing.T) {
 		Name:            "Test User 2",
 		BudgetID:        &budget.ID,
 		ViewPeriod:      "monthly",
-		PeriodStartDate: time.Now(),
+		PeriodStartDate: func() *time.Time { t := time.Now(); return &t }(),
 	}
 	db.Create(user2)
 
