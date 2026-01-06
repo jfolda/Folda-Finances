@@ -49,9 +49,8 @@ func AutoMigrate(db *gorm.DB) error {
 		return fmt.Errorf("failed to create uuid extension: %w", err)
 	}
 
-	// Run auto migrations for all tables EXCEPT users
-	// (users table is managed by Supabase Auth and already exists)
-	err := db.Debug().AutoMigrate(
+	// Run auto migrations for all tables
+	err := db.AutoMigrate(
 		&models.User{},
 		&models.Budget{},
 		&models.Category{},
@@ -67,8 +66,7 @@ func AutoMigrate(db *gorm.DB) error {
 	}
 
 	// For users table, just ensure the columns we need exist
-	// The table is managed by Supabase Auth, so we don't auto-migrate it
-	log.Println("✓ Database migrations completed (users table managed by Supabase)")
+	log.Println("✓ Database migrations completed")
 	return nil
 }
 
