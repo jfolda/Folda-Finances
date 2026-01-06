@@ -51,7 +51,8 @@ func AutoMigrate(db *gorm.DB) error {
 
 	// Run auto migrations for all tables EXCEPT users
 	// (users table is managed by Supabase Auth and already exists)
-	err := db.AutoMigrate(
+	err := db.Debug().AutoMigrate(
+		&models.User{},
 		&models.Budget{},
 		&models.Category{},
 		&models.Account{},
